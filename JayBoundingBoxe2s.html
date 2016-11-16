@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collisions</title>
+    <script src="http://threejs.org/build/three.js"></script>
+    <script src="http://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+   <!-- Div which will hold the Output -->
+   <div id="WebGL-output">
+   <button onclick="startGameMode()">Game Mode</button>
+   <button onclick="getData()">Get Data</button>
+   </div>
+<script>
+	/* 
+	Global Variables
+	 */
+ 
+	// Scene Objects 
+	var renderer;
+	var scene;
+	var camera;
+	var controls;
+	
+	// Boxes
+	var boxesArray = [];
+	
+	// BoundingBoxHelpers
+	var boundBoxHelperArray = [];
+	
+	// Ground Piece
+	var groundPlane;
+	
+	// Supporting Variables
+	var mapSize;
+	
+	// Setup Variables
+	var seeBoundingBoxes = false;
+	var boxSize;
+	var cubeColors;
+	var numOfCubes;
+	var gameMode;
+	
+	// control variables
+	var currentObject = 0;
+	var nextObject;
+	var previousObject;
+	var previousObjectColor;
+	
+	// game variables
+	var score = 0;
+	var level = 1;
+	var alive;
+	
+	
+	
+	
+	
+	
+	////////////////////////////
+	//  ESSENTIAL FUNCTIONS ////
+	////////////////////////////
+	
+	function gameSetup(){
+		mapSize = 60; // Set your map Size;
+		cubeColors = ["red", "blue", "green", "orange", "purple", "maroon", "yellow", "indigo", "Gold"];
+		numOfCubes = 3; // Set the number of Cubes here;
+		gameMode = 0; // 0 = off , 1 = on;
+	}
+	
+	function setupFunctions(){
+		document.addEventListener('keyup', function (event) {
+           if (event.keyCode === 27) { // listen for Esc Key
+               event.preventDefault();
+               visibilityBoundingBoxes();
+           }
+		   if (event.keyCode === 16 && gameMode == 0) { // listen for "shift" Key
+               event.preventDefault();
+               switchObject(); // switch the focus of which object you're looking at;
+           }
+		   
+        });
+		
+		document.addEventListener("keydown", function (event) {
+			if(event.keyCode === 87) { // listen for "W" key;
+				event.preventDefault();
+				boxesArray[currentObject].position.z -= 1;
+				// updates the boundingBox;
+				boundBoxUpdate(boundBoxHelperArray[currentObject]);
+				
+			}
+			if(event.keyCode === 65) { // listen for "A" key;
+				event.preventDefault();
+				boxesArray[currentObject].position.x -= 1;
+				// updates the boundBox;
+				boundBoxUpdate(boundBoxHelperArray[currentObject]);
+				
+			}
+			if(event.keyCode === 83) { // listen for "S" key;
+				event.preventDefault();
+				boxesArray[currentObject].position.z += 1;
+				// updates the boundBox;
+				boundBoxUpdate(boundBoxHelperArray[currentObject]);
+				
+			}
+			if(event.keyCode === 68) { // listen for "D" key;
+				event.preventDefault();
+				boxesArray[currentObject].position.x += 1;
+				// updates the boundBox;
+				boundBoxUpdate(boundBoxHelperArray[currentObject]);
+				
+			}
+		});
+	} // end setupFunctions;
+	
+	
+	
+	//////////////////////////////
+	//  Initializing Function ////
+	//////////////////////////////
+	
+	
+	function init() {       
+		displayInfo();
+        sceneCamera();
+		rendererSetup();
+		gameSetup();
+        // add the output of the renderer to the html element;
+        document.getElementById("WebGL-output").appendChild(renderer.domElement);
+		
+		// run createWorld function;
+        createWorld();
+		
+		// setUp keyevents;
+		setupFunctions();
+		
+		// run runder;
+        render();
+		
+    } // end init;
+	
+	
+	
+	///////////////////
+	/// Create World //
+	///////////////////
+	
+	function createWorld(){
+		// add axis helper so we know how we are oriented;
+		scene.add((new THREE.AxisHelper(100)));
+		
+		// add point light;
+		addPointLight();
+		addspotLight();
+		
+		// add floor;
+		addFloor();
+		
+		// create cube(s);
+		for(i = 0; i < numOfCubes; i++){
+			createBox(3);
+		}
+
+		// add it to the scene;
+		addBoxes();
+		
+	}
+	
+	
+	
+	/////////////////////////////////
+	/// Camera and Renderer Setup  //
+	/////////////////////////////////
+	
+	function sceneCamera(){
+		scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+		camera.position.x = 95;
+        camera.position.y = 55;
+        camera.position.z = 95;
+        camera.lookAt(scene.position);
+		
+	} // end sceneCamera;
+	
+	function rendererSetup(){
+		renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor(0x000000, 1.0);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+		
+		// shadow map properties
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+		
+		controls = new THREE.OrbitControls(
+	    camera, this.renderer.domElement);
+	} // end renderSetup;
+	
+	
+	///////////////////
+	// Scene Objects //
+	///////////////////
+	
+	function addPointLight(){
+		var light = new THREE.PointLight( 0xffffff, 2, 1000 );
+		light.position.set( 40, 10, 40 );
+		scene.add( light );
+	}
+	
+	function addspotLight(){
+		// spotLight 
+		var spotLight = new THREE.SpotLight( 0xffffff, .8, 350, .6, .5, 1.0 ); // color, intensity, distance, angle, penumbra, decay
+		
+		// spotLight shadow dynamics 
+		spotLight.castShadow = true;
+		spotLight.shadow.mapSize.width = 1024;
+		spotLight.shadow.mapSize.height = 1024;
+		spotLight.shadow.camera.near = 1;
+		spotLight.shadow.camera.far = 200;
+		spotLight.shadow.camera.fov = 40;
+		
+		// spotLight position
+		spotLight.position.set(70,60,70);
+		
+		scene.add( spotLight );
+	}
+	
+	
+	
+	
+	
+	
+	
+	/////////////////////////////
+	// Create Object Functions //
+	/////////////////////////////
+	
+	function addFloor(){
+		var floorsize = mapSize;
+		var geometry = new THREE.PlaneGeometry( floorsize, floorsize, 32 );
+		var material = new THREE.MeshLambertMaterial(( { map: THREE.ImageUtils.loadTexture('images/wood.jpg'), side: THREE.DoubleSide } ));
+		var plane = new THREE.Mesh( geometry, material );
+		
+		// position properties
+		plane.rotation.x = 1.57;
+		plane.position.set(floorsize/2, 0, floorsize/2);
+		
+		// shadow properties
+		plane.receiveShadow = true;
+		scene.add( plane );
+	}
+	
+	function createBox(size){
+		// update what we're using for boxSize (class variable);
+		boxSize = size;
+		// pick a random color based on the size of cube color array;
+		var randColorNumber = Math.floor((Math.random() * cubeColors.length));
+		var geometry = new THREE.BoxGeometry( size, size, size );
+		var material = new THREE.MeshPhongMaterial( {color: cubeColors[randColorNumber]} );
+		var cube = new THREE.Mesh( geometry, material );
+		
+		// give our cube a random position by passing it into this method
+		// what this method (setRandomPosition)does is take our cube, find random values
+		// and assigns those values to be it's x,y,z position.
+		setRandomPosition(cube, size);
+		
+		// shadow properties -- give our cube a shadow
+		cube.castShadow = true;
+		
+		// add a bounding box;
+		addBoundingBox(cube, size);
+		boxesArray.push(cube);
+	}
+	
+	function addBoxes(){
+		for(i = 0; i < boxesArray.length; i++){
+			scene.add(boxesArray[i]);
+		}
+	}
+	
+	// NOT TO BE CALLED IN createWorld()!!! This is automatically built when createBox is!
+	function addBoundingBox(cube, size){
+		// create the bounding box as prescribed from the current cube that is passed in;
+		var cubeBBox = new THREE.BoundingBoxHelper(cube, 0x00ff00);
+		cubeBBox.update();
+	    cubeBBox.visible = false;
+		scene.add(cubeBBox);
+		boundBoxHelperArray.push(cubeBBox);
+	}
+	
+	// new THREE.MeshLambertMaterial(( { map: THREE.ImageUtils.loadTexture('images/crate.jpg') } ));
+	// new THREE.MeshLambertMaterial( {color: 0xff99ff, side: THREE.DoubleSide} );
+	
+	
+	//////////////////////////////////
+	//// Object Support Functions ////
+	//////////////////////////////////
+	
+	function setRandomPosition(cube, size){
+		var x = Math.floor((Math.random() * mapSize)) + (size/2);
+		var y = Math.floor((Math.random() * mapSize));
+		var z = Math.floor((Math.random() * mapSize)) + (size/2);
+		
+		// set the cube's position
+		cube.position.set(x,(size/2),z);
+		
+		// make sure cube is not beyond the + end of the map;
+		if(cube.position.x > mapSize - (size/2) || cube.position.z > mapSize - (size/2)){
+			// if cube's x position is greater than mapSize -- then subtract it by half a cube;
+			if(cube.position.x > mapSize){
+				cube.position.x = (x - size);
+			}
+			// if cube's z position is greater than mapSize -- then subtract it by half a cube;
+			else{
+				cube.position.z = (z - size );
+			}
+		}
+		if(cube.position.x < (size/2) || cube.position.z < (size/2)){
+			if(cube.position.x < (1/2)(size)){
+				cube.position.x += 1;
+			}else{
+				cube.position.z += 1;
+			}
+		}
+		
+		// check other cube's position to make sure this cube can go here.
+		// if the box array is storing other cubes (i.e. this is not the first cube);
+		if(boxesArray.length > 0){
+			// go through each cube's x and z value to see if this cube is potentially in the way;
+			for(i = 0; i < boxesArray.length; i++){
+				// the cube we're looking at in the past...
+				var prevCube = boxesArray[i];
+				// if the difference between our previous cube and current cube's x and z values are less than the size of the cube, presume we have a collision;
+				if(Math.abs(prevCube.position.x - cube.position.x) < size && Math.abs(prevCube.position.z - cube.position.z) < size){
+					info.innerHTML = "collision";
+					
+					// if the current cube is not too close (that is -- it is not within a cube of the x boundary) to the boundary of x -- increase cube's x position;
+					if(cube.position.x < (mapSize - cube.position.x)){
+						cube.position.x += size;
+					}else{
+						cube.position.x -= size;
+					}
+					
+					// go through the entire cube list again to make sure this adjustment does not interfere with other cubes;
+					i = 0;
+				}
+			}
+		}
+		return cube;
+	}
+	
+	//////////////////////////
+	/// Check Collision  /////
+	//////////////////////////
+	
+	function checkForBoxCollisions(){
+		// string to pass to info.innerHTML so that we can specify the collision and between which objects 
+		// it occured;
+		var stringTogiveToInfo;
+		var objectNoted;
+		for(i = 0; i < boundBoxHelperArray.length; i++){
+			// if the currentObject is intersecting something and it is NOT the currentObject then we note it;
+			if(boundBoxHelperArray[currentObject].box.intersectsBox(boundBoxHelperArray[i].box) && i != currentObject){
+				objectNoted = i;
+			}
+			
+			
+		}
+		
+		// if gameMode is off, we just want to see what is the present collision status;
+		if(gameMode == 0){
+			// if the objectNoted isn't "undefined" (that is it actually bumped into something) display it;
+			if(objectNoted != undefined){
+				info.innerHTML = "You are currently box: " + (currentObject+1) + "<br> collision between box: " + (currentObject+1) + " and box: " + (objectNoted+1);
+			}else{
+				info.innerHTML = "No collisions presently";
+			}
+		};
+		
+		// if gameMode is on, we want to keep track of collisions -- we'll also add some variables so that we can keep track of things like score, and score depreciation etc;
+		if(gameMode == 1){
+			info.innerHTML = "Level: " + level + "<br>Score: " + score;
+			gameEngine();
+		}
+		
+		if(debuggingMode == 1){
+			// creates an array showing the current object's x and z coordinates;
+			
+			
+		  info.innerHTML = "box x: " + boxesArray[currentObject].position.x + "<br>box z: " + boxesArray[currentObject].position.z;
+		}
+	}
+	
+	
+	
+	/////////////////////
+	/// Misc Functions //
+	/////////////////////
+	
+	// setup functions;
+	
+	function visibilityBoundingBoxes () {
+         seeBoundingBoxes = !seeBoundingBoxes;
+         for(i = 0; i < boundBoxHelperArray.length; i++){
+			 var boundBox = boundBoxHelperArray[i];
+			 boundBox.visible = !!seeBoundingBoxes;
+		 }
+      }
+	 
+	 // updates the boundBoxes
+	function boundBoxUpdate(boundBox){
+		boundBox.update();
+	}
+	  
+	function switchObject(){
+	
+		
+		// we need to increment currentObject at the very beginning because if we increment it later
+		// when we go to 'control ' the object, it will be the "next" object rather than the one we want
+		// to control;
+		
+		// if we have not done this function before -- set currentObject = 0;
+		if(previousObject == undefined){
+			currentObject = 0;
+		}else{
+			// if we have done this before -- set the previousObject back to its color and increment;
+			boxesArray[previousObject].material.color.setHex( previousObjectColor );
+			currentObject++;
+			if(currentObject+1 > boxesArray.length){
+				currentObject = 0;
+			}
+		}
+		
+		// setting the currentObject to be an object;
+		var currentObjectLiteral = boxesArray[currentObject];
+		
+		// remember this object's color by setting it to previousObject color;
+		previousObjectColor = currentObjectLiteral.material.color.getHex();
+		
+		// change the current object's color to white;
+		currentObjectLiteral.material.color.setHex( 0xffffff );
+		
+		// set the previousObject to currentObject, as when it next iterates it will be;
+		previousObject = currentObject;
+	}
+	 
+	 function displayInfo(){
+		 // info
+		info = document.createElement( 'div' );
+		info.style.position = 'absolute';
+		info.style.top = '30px';
+		info.style.width = '100%';
+		info.style.textAlign = 'center';
+		info.style.color = '#fff';
+		info.style.fontWeight = 'bold';
+		info.style.backgroundColor = 'transparent';
+		info.style.zIndex = '1';
+		info.style.fontFamily = 'Monospace';
+		info.innerHTML = "Bounding Box";
+		document.body.appendChild( info );
+	 }
+	 
+	 //////////////////////
+	/// Render Function //
+	//////////////////////
+	
+	function render() {
+        renderer.render(scene, camera);
+        controls.update();
+		checkForBoxCollisions();
+        requestAnimationFrame(render);
+    }
+
+	  
+
+	  
+	  
+	  ////////////////////////////////////
+	  ///   GAME MODE FUNCTIONS BELOW ////
+	  ////////////////////////////////////
+	  
+	  // speed of the players;
+	  var speed = -0.05;
+	  var information = [];
+	  var debuggingMode = 0;
+	  
+	  
+	  
+	  
+	  
+	  // starts game mode from the button on the top left;
+	  function startGameMode(){
+		  gameMode = !gameMode;
+	  }
+	  
+	  function gameEngine(){
+		  movePlayers();
+		  updateAllBoundBoxes();
+	  }
+	  
+	  
+	  
+	  // moves the invidual boxes;
+	  function movePlayers(){
+		  for(i = 0; i < boxesArray.length; i++){
+			  var box1 = boxesArray[i];
+			  var deltaX = speed; // speed of x;
+			  var deltaZ = speed; // speed of z;
+			  
+			  var directionOfTravel;
+			  
+			  var breakBound = 1; // if box travels to the other side -- switch its direction of travel;
+			  
+			  // find out if the cube has exceeded either end;
+			  var resultPos = checkPositiveBounds(box1);
+			  var resultNeg = checkNegativeBounds(box1);
+			  info.innerHTML = "resultPos " + resultPos + "<br> resultNeg " + resultNeg;
+			  
+			  // if the cube moves past the map in either x or z direction -- turn it around.
+			  if(resultPos != undefined || resultNeg != undefined){
+				  // find out which way it went past;
+				  if(resultPos == "x"){
+					  // change that direction around;
+					  deltaX * breakBound;
+				  }
+				  if(resultPos == "z"){
+					  // change that direction around;
+					  deltaZ * breakBound;
+				  }
+				  
+			  }
+			  
+			  box1.position.z += deltaZ;
+			  
+			  
+			  
+		  }
+		  updateAllBoundBoxes();
+	  }
+	  
+	  function checkPositiveBounds(cube){
+		  var size = boxSize;
+		  var result;
+		  if(cube.position.x > mapSize - (size/2) || cube.position.z > mapSize - (size/2)){
+			  // if cube's x position goes beyond the map;
+				if(cube.position.x > mapSize - (size/2)){
+					result = "x";
+				}
+				// if cube's y position goes beyond the map;
+				if(cube.position.z > mapSize - (size/2)){
+					result = "z";
+				}
+			}
+			else{
+				result = undefined;
+			}
+			return result;
+	  }
+	  
+	  function checkNegativeBounds(cube){
+		  var size = boxSize;
+		  var result;
+		  if(cube.position.x < (size/2) || cube.position.z < (size/2)){
+			  // if cube's x position goes beyond the map;
+				if(cube.position.x < (size/2)){
+					result = "x";
+				}
+				// if cube's y position goes beyond the map;
+				if(cube.position.z < (size/2)){
+					result = "z";
+				}
+			}
+			else{
+				result = undefined;
+			}
+			
+			return result;
+	  }
+	  
+	  // updates all the boundBoxes;
+	  function updateAllBoundBoxes(){
+		  for( i = 0; i < boundBoxHelperArray.length; i++){
+			  boundBoxHelperArray[i].update();
+		  }
+	  }
+	  
+	  // debugging tool to find out where objects are located;
+	  function getData(){
+		  debuggingMode = !debuggingMode;
+	  }
+	  
+	  
+	  
+	  
+	  
+	  
+	  
+
+    // calls the init function when the window is done loading.
+    window.onload = init;
+	
+
+</script>
+</body>
+</html>
