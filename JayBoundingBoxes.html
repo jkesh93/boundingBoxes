@@ -36,9 +36,7 @@
 	
 	// Ground Piece
 	var groundPlane;
-	
-	// Supporting Variables
-	var mapSize;
+
 	
 	// Setup Variables
 	var seeBoundingBoxes = false;
@@ -57,6 +55,12 @@
 	var score = 0;
 	var level = 1;
 	var alive;
+	var playerMoveValid;
+	
+	// Supporting Variables
+	var mapSize;
+	var mapMin;
+	var mapMax;
 	
 	
 	
@@ -72,6 +76,9 @@
 		cubeColors = ["red", "blue", "green", "orange", "purple", "maroon", "yellow", "indigo", "Gold"];
 		numOfCubes = 3; // Set the number of Cubes here;
 		gameMode = 0; // 0 = off , 1 = on;
+		
+		
+		
 	}
 	
 	function setupFunctions(){
@@ -166,6 +173,9 @@
 		for(i = 0; i < numOfCubes; i++){
 			createBox(3);
 		}
+		
+		// set mapSize mins and maxes;
+		setMapSettings();
 
 		// add it to the scene;
 		addBoxes();
@@ -258,6 +268,9 @@
 	function createBox(size){
 		// update what we're using for boxSize (class variable);
 		boxSize = size;
+		
+		
+		
 		// pick a random color based on the size of cube color array;
 		var randColorNumber = Math.floor((Math.random() * cubeColors.length));
 		var geometry = new THREE.BoxGeometry( size, size, size );
@@ -393,6 +406,8 @@
 			
 			
 		  info.innerHTML = "box x: " + boxesArray[currentObject].position.x + "<br>box z: " + boxesArray[currentObject].position.z;
+		  info.innerHTML += "<br>mapMax: " + mapMax + "<br> mapMin: " + mapMin;
+		  
 		}
 	}
 	
@@ -403,6 +418,13 @@
 	/////////////////////
 	
 	// setup functions;
+	
+	function setMapSettings(){
+		/// let computer set these;
+		mapMin = 0 + (boxSize / 2);
+		mapMax = mapSize - (boxSize / 2);
+		
+	}
 	
 	function visibilityBoundingBoxes () {
          seeBoundingBoxes = !seeBoundingBoxes;
@@ -485,9 +507,13 @@
 	  ////////////////////////////////////
 	  
 	  // speed of the players;
-	  var speed = -0.05;
-	  var information = [];
+	  var speed = 0.05;
+	  var deltaX = speed;
+	  var deltaZ = speed;
 	  var debuggingMode = 0;
+	  // define the minimums and maximum positions the cubes can be within;
+	  var mapMin = 0 + (boxSize / 2);
+	  var mapMax = mapSize - (boxSize / 2);
 	  
 	  
 	  
@@ -508,35 +534,38 @@
 	  // moves the invidual boxes;
 	  function movePlayers(){
 		  for(i = 0; i < boxesArray.length; i++){
+				// set box1 to be the current box we're iterating  through
 			  var box1 = boxesArray[i];
-			  var deltaX = speed; // speed of x;
-			  var deltaZ = speed; // speed of z;
+			  info.innerHTML += "<br>deltaX = " + mapMax;
+			  // if the box is moving to outside the map, change it's direction. 																Don't change it's direction again until it hits the other side.
+			  // that is if the box += dirVector(x or z) exceeds the mapMax or is less less than mapMin, change its direction.					that is have a boolean flag so that when it hits the other side -- let it move.
+			  // that is if the dirVector(x or z) is positive, switch it to negative;
 			  
-			  var directionOfTravel;
-			  
-			  var breakBound = 1; // if box travels to the other side -- switch its direction of travel;
-			  
-			  // find out if the cube has exceeded either end;
-			  var resultPos = checkPositiveBounds(box1);
-			  var resultNeg = checkNegativeBounds(box1);
-			  info.innerHTML = "resultPos " + resultPos + "<br> resultNeg " + resultNeg;
-			  
-			  // if the cube moves past the map in either x or z direction -- turn it around.
-			  if(resultPos != undefined || resultNeg != undefined){
-				  // find out which way it went past;
-				  if(resultPos == "x"){
-					  // change that direction around;
-					  deltaX * breakBound;
-				  }
-				  if(resultPos == "z"){
-					  // change that direction around;
-					  deltaZ * breakBound;
-				  }
-				  
+			  if(box1.position.x >= mapMax || box1.position.x <= mapMin){
+				deltaX = -deltaX;
+
+			  }
+			  if(box1.position.z >= mapMax || box1.position.z <= mapMin){
+				deltaZ = -deltaZ;
 			  }
 			  
-			  box1.position.z += deltaZ;
-			  
+				if(i != currentObject && playerMoveValid == 1){
+				  box1.position.z += deltaZ;
+				  box1.position.x += deltaX;
+				}
+				
+				// the currentPlayerObject;
+				currentObjectLiteral = boxesArray[currentObject];
+				
+				if(currentObjectLiteral.position.x < mapMax
+				&& currentObjectLiteral.position.z < mapMax
+				&& currentObjectLiteral.position.x > mapMin
+				&& currentObjectLiteral.position.z > mapMin
+				){
+					playerMoveValid = 1;
+				}else{
+					playerMoveValid = 0;
+				}
 			  
 			  
 		  }
