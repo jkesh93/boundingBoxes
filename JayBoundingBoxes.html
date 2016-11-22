@@ -16,6 +16,8 @@
    <div id="WebGL-output">
    <button onclick="startGameMode()">Game Mode</button>
    <button onclick="getData()">Get Data</button>
+   <button onclick="levelMore()">Level++</button>
+   <button onclick="levelLess()">Level--</button>
    </div>
 <script>
 	/* 
@@ -56,6 +58,7 @@
 	var level = 1;
 	var alive;
 	var playerMoveValid;
+	var boxCollidedID;
 	
 	// Supporting Variables
 	var mapSize;
@@ -72,9 +75,9 @@
 	////////////////////////////
 	
 	function gameSetup(){
-		mapSize = 60; // Set your map Size;
+		mapSize = 90; // Set your map Size;
 		cubeColors = ["red", "blue", "green", "orange", "purple", "maroon", "yellow", "indigo", "Gold"];
-		numOfCubes = 3; // Set the number of Cubes here;
+		numOfCubes = 8; // Set the number of Cubes here;
 		gameMode = 0; // 0 = off , 1 = on;
 		
 		
@@ -380,6 +383,7 @@
 			// if the currentObject is intersecting something and it is NOT the currentObject then we note it;
 			if(boundBoxHelperArray[currentObject].box.intersectsBox(boundBoxHelperArray[i].box) && i != currentObject){
 				objectNoted = i;
+				boxCollidedID = i;
 			}
 			
 			
@@ -406,7 +410,7 @@
 			
 			
 		  info.innerHTML = "box x: " + boxesArray[currentObject].position.x + "<br>box z: " + boxesArray[currentObject].position.z;
-		  info.innerHTML += "<br>mapMax: " + mapMax + "<br> mapMin: " + mapMin;
+		  info.innerHTML += "<br>mapMax: " + mapMax + "<br> mapMin: " + mapMin + "<br>Score: " + score + "<br> Speed: " + speed;
 		  
 		}
 	}
@@ -543,10 +547,15 @@
 			  
 			  if(box1.position.x >= mapMax || box1.position.x <= mapMin){
 				deltaX = -deltaX;
-
+				if(i != currentObject){
+				score++;
+				}
 			  }
 			  if(box1.position.z >= mapMax || box1.position.z <= mapMin){
 				deltaZ = -deltaZ;
+				if(i != currentObject){
+				score++;
+				}
 			  }
 			  
 				if(i != currentObject && playerMoveValid == 1){
@@ -621,6 +630,19 @@
 	  // debugging tool to find out where objects are located;
 	  function getData(){
 		  debuggingMode = !debuggingMode;
+	  }
+	  
+	  function levelLess(){
+		speed -= 0.05;
+		deltaX = speed;
+		deltaZ = speed;
+		level--;
+	  }
+	  function levelMore(){
+		speed += 0.05;
+		deltaX = speed;
+		deltaZ = speed;
+		level++;
 	  }
 	  
 	  
