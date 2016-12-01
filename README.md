@@ -5,6 +5,7 @@
 
  (This is necessary since there are images it needs to load)
  ---
+ 
  > cd C:\<yourUserNameHere\<user>\Desktop
 
  > md boundingBoxes
