@@ -12,4 +12,4 @@
 > pause
 ---
 
-2. Type in localhost:8000 into your web browser of choice.
+1. Type in localhost:8000 into your web browser of choice.
