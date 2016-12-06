@@ -67,7 +67,7 @@
 	var mapSize;
 	var mapMin;
 	var mapMax;
-	
+	var movecube = 0;
 	
 	
 	
@@ -83,7 +83,7 @@
 		numOfCubes = 8; // Set the number of Cubes here;
 		objectCount = numOfCubes;
 		gameMode = 0; // 0 = off , 1 = on;
-		
+		moveCube = 3; // move cube by how many spaces;
 		
 		
 	}
@@ -110,28 +110,37 @@
 		document.addEventListener("keydown", function (event) {
 			if(event.keyCode === 87) { // listen for "W" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.z -= 3;
+				if((boxesArray[currentObject].position.z - moveCube) >= mapMin){
+				boxesArray[currentObject].position.z -= moveCube;
+				}
 				// updates the boundingBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
 			}
 			if(event.keyCode === 65) { // listen for "A" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.x -= 3;
+				if((boxesArray[currentObject].position.x - moveCube) >= mapMin){
+				boxesArray[currentObject].position.x -= moveCube;
+				}
 				// updates the boundBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
 			}
 			if(event.keyCode === 83) { // listen for "S" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.z += 3;
+				if((boxesArray[currentObject].position.z + moveCube) <= mapMax){
+				boxesArray[currentObject].position.z += moveCube;
+				}
 				// updates the boundBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
 			}
 			if(event.keyCode === 68) { // listen for "D" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.x += 3;
+				if((boxesArray[currentObject].position.x + moveCube) <= mapMax){
+				boxesArray[currentObject].position.x += moveCube;
+				}
+				
 				// updates the boundBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
@@ -394,6 +403,7 @@
 			if(boundBoxHelperArray[currentObject].box.intersectsBox(boundBoxHelperArray[i].box) && i != currentObject){
 				objectNoted = i;
 				boxCollidedID = i;
+				score -= 5;
 			}
 			
 			
@@ -412,7 +422,9 @@
 		// if gameMode is on, we want to keep track of collisions -- we'll also add some variables so that we can keep track of things like score, and score depreciation etc;
 		if(gameMode == 1){
 			info.innerHTML = "Level: " + level + "<br>Score: " + score;
-			gameEngine();
+			movePlayers();			
+			updateAllBoundBoxes();
+			//gameEngine();
 		}
 		
 		if(debuggingMode == 1){
@@ -591,7 +603,7 @@
 				){
 					playerMoveValid = 1;
 				}else{
-					playerMoveValid = 0;
+					playerMoveValid = 1;
 				}
 			  
 			  
@@ -656,8 +668,8 @@
 		deltaZ = speed;
 		
 		for(i = 0; i < objectCount; i++){
-			objectMovementArray[i].push(deltaX);
-			objectMovementArray[i].push(deltaZ);
+			objectMovementArray[i][0] = deltaX;
+			objectMovementArray[i][1] = deltaZ;
 		}
 		level--;
 	  }
@@ -674,13 +686,6 @@
 		
 		level++;
 	  }
-	  
-	  
-	  
-	  
-	  
-	  
-	  
 
     // calls the init function when the window is done loading.
     window.onload = init;
