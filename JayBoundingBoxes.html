@@ -337,9 +337,9 @@
 	//////////////////////////////////
 	
 	function setRandomPosition(cube, size){
-		var x = Math.floor((Math.random() * mapSize)) + (size/2);
+		var x = Math.floor((Math.random() * mapSize));
 		var y = Math.floor((Math.random() * mapSize));
-		var z = Math.floor((Math.random() * mapSize)) + (size/2);
+		var z = Math.floor((Math.random() * mapSize));
 		
 		// set the cube's position
 		cube.position.set(x,(size/2),z);
@@ -348,18 +348,19 @@
 		if(cube.position.x > mapSize - (size/2) || cube.position.z > mapSize - (size/2)){
 			// if cube's x position is greater than mapSize -- then subtract it by half a cube;
 			if(cube.position.x > mapSize){
-				cube.position.x = (x - size);
+				cube.position.x = cube.position.x - 2;
 			}
 			// if cube's z position is greater than mapSize -- then subtract it by half a cube;
 			else{
-				cube.position.z = (z - size );
+				cube.position.z = cube.position.z - 2;
 			}
 		}
+		
 		if(cube.position.x < (size/2) || cube.position.z < (size/2)){
-			if(cube.position.x < (1/2)(size)){
-				cube.position.x += 1;
+			if(cube.position.x < (.5*size)){
+				cube.position.x += 3;
 			}else{
-				cube.position.z += 1;
+				cube.position.z += 3;
 			}
 		}
 		
@@ -561,7 +562,7 @@
 	  
 	  
 	  
-	  // moves the invidual boxes;
+	  // moves the invidual boxes AND COLLISION DETECTION FOR WALLS AND OTHER BOXES;
 	  function movePlayers(){
 		  for(i = 0; i < boxesArray.length; i++){
 				// set box1 to be the current box we're iterating  through
@@ -571,22 +572,56 @@
 			  // that is if the box += dirVector(x or z) exceeds the mapMax or is less less than mapMin, change its direction.					that is have a boolean flag so that when it hits the other side -- let it move.
 			  // that is if the dirVector(x or z) is positive, switch it to negative;
 			  
-			  if(box1.position.x >= mapMax || box1.position.x <= mapMin){
-			  // change this object's movement to a specific value
-				objectMovementArray[i][0] = -objectMovementArray[i][0];
-				//deltaX = -deltaX;
-				if(i != currentObject){
-				score++;
+			  // If we are NOT in game mode OR we ARE in game mode -- we will detect wall collisions;
+			  if(!gameMode || gameMode){
+				  if(box1.position.x >= mapMax || box1.position.x <= mapMin){
+				  // change this object's movement to a specific value
+					objectMovementArray[i][0] = -objectMovementArray[i][0];
+					//deltaX = -deltaX;
+					if(i != currentObject){
+					score++;
+					}
+				  }
+				  
+				  
+				  if(box1.position.z >= mapMax || box1.position.z <= mapMin){
+				  // change object's movement to it's inverse
+				  objectMovementArray[i][1] = -objectMovementArray[i][1];
+					//deltaZ = -deltaZ;
+					if(i != currentObject){
+					score++;
+					}
+				  }
+				  
+				  // if the bounding box of i intersects bounding box of j, then we need to know;
+					for(j = 0; j < boundBoxHelperArray.length; j++){
+					
+						if(boundBoxHelperArray[i].box.intersectsBox(boundBoxHelperArray[j].box) && i != j){
+							
+							// difference in x is box[i].x - box[j].position.x;
+							var xDiff = Math.abs((boxesArray[i].position.x - boxesArray[j].position.x));
+							
+							// difference in z is box[i].z - box[j].position.z;
+							var zDiff = Math.abs((boxesArray[i].position.z - boxesArray[j].position.z));
+							
+							console.log("collisions between: " + i + " and " + j + "\n xDiff: " + xDiff + "\n yDiff: " + zDiff + "\n Current player: " + currentObject);
+							if(xDiff < zDiff){
+								objectMovementArray[i][0] = -objectMovementArray[i][0];
+							}
+							if(xDiff > zDiff){
+								objectMovementArray[i][1] = -objectMovementArray[i][1];
+							}
+							
+							
+							if(boxesArray[i].position.x)
+							objectMovementArray[i][0] = -objectMovementArray[i][0];
+							objectMovementArray[i][1] = -objectMovementArray[i][1];
+						}
+					}
 				}
-			  }
-			  if(box1.position.z >= mapMax || box1.position.z <= mapMin){
-			  // change object's movement to it's inverse
-			  objectMovementArray[i][1] = -objectMovementArray[i][1];
-				//deltaZ = -deltaZ;
-				if(i != currentObject){
-				score++;
-				}
-			  }
+				
+				
+				
 			  
 				if(i != currentObject && playerMoveValid == 1){
 				  box1.position.z += objectMovementArray[i][1];
