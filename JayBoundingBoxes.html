@@ -587,7 +587,7 @@
 			  if(!gameMode || gameMode){
 			  
 			  // MAP COLLISIONS
-				  if(box1.position.x >= mapMax || box1.position.x <= mapMin){
+				  if(box1.position.x >= mapMax || box1.position.x <= mapMin && i != undefined && j != undefined){
 				  // change this object's movement to a specific value
 					objectMovementArray[i][0] = -objectMovementArray[i][0];
 					// the cube is reset;
@@ -600,7 +600,7 @@
 				  }
 				  
 				  
-				  if(box1.position.z >= mapMax || box1.position.z <= mapMin){
+				  if(box1.position.z >= mapMax || box1.position.z <= mapMin && i != undefined && j != undefined){
 				  // change object's movement to it's inverse
 				  objectMovementArray[i][1] = -objectMovementArray[i][1];
 				  // the cube is reset;
@@ -620,7 +620,7 @@
 				  // if the bounding box of i intersects bounding box of j, then we need to know;
 					for(j = 0; j < boundBoxHelperArray.length; j++){
 					
-						if(boundBoxHelperArray[i].box.intersectsBox(boundBoxHelperArray[j].box) && i != j){
+						if(boundBoxHelperArray[i].box.intersectsBox(boundBoxHelperArray[j].box) && i != j && i != undefined && j != undefined){
 						
 						if( i != currentObject && j != currentObject){
 							if(taggedItem == j || taggedItem == i){
@@ -653,24 +653,26 @@
 							
 							
 							
-							
-							// difference in x is box[i].x - box[j].position.x;
+							if(boxesArray[i] != undefined && boxesArray[j] != undefined){
+								// difference in x is box[i].x - box[j].position.x;
 							var xDiff = Math.abs((boxesArray[i].position.x - boxesArray[j].position.x));
 							
 							// difference in z is box[i].z - box[j].position.z;
 							var zDiff = Math.abs((boxesArray[i].position.z - boxesArray[j].position.z));
+							}
+						
 							
 							console.log("collisions between: " + i + " and " + j + "\n xDiff: " + xDiff + "\n yDiff: " + zDiff + "\n Current player: " + currentObject + "\n t@gged: " + taggedItem);
-							if(i == currentObject){
+							if(i == currentObject && i != undefined && j != undefined){
 								collidedWith.push(j);
 							}else{
 							collidedWith.push(i);
 							}
 							
-							if(xDiff <= zDiff){
+							if(xDiff <= zDiff && i != undefined && j != undefined){
 								objectMovementArray[i][0] = -objectMovementArray[i][0];
 							}
-							if(xDiff >= zDiff){
+							if(xDiff >= zDiff && i != undefined && j != undefined){
 								objectMovementArray[i][1] = -objectMovementArray[i][1];
 							}
 							
@@ -798,9 +800,9 @@
 		scene.remove(boxesArray[arrayIndexNum]);
 	  
 		// we're going to remove it from the arrays boundBoxHelperArray and boxesArray and objectMovementArray;
-		//boundBoxHelperArray.splice(arrayIndexNum, 1);
-		//boxesArray.splice(arrayIndexNum, 1);
-		//objectMovementArray.splice(arrayIndexNum, 1);
+		boundBoxHelperArray.splice(arrayIndexNum, 1);
+		boxesArray.splice(arrayIndexNum, 1);
+		objectMovementArray.splice(arrayIndexNum, 1);
 		
 	  }
 	  
