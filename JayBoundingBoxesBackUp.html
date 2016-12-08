@@ -16,6 +16,8 @@
    <div id="WebGL-output">
    <button onclick="startGameMode()">Game Mode</button>
    <button onclick="getData()">Get Data</button>
+   <button onclick="levelMore()">Level++</button>
+   <button onclick="levelLess()">Level--</button>
    </div>
 <script>
 	/* 
@@ -36,9 +38,7 @@
 	
 	// Ground Piece
 	var groundPlane;
-	
-	// Supporting Variables
-	var mapSize;
+
 	
 	// Setup Variables
 	var seeBoundingBoxes = false;
@@ -57,7 +57,21 @@
 	var score = 0;
 	var level = 1;
 	var alive;
+	var playerMoveValid;
+	var boxCollidedID;
 	
+	// 2D array for each object's deltaX and deltaY;
+	var objectMovementArray = [];
+	var objectCount = 0;
+	
+	// array for holding "who's tagged"
+	var taggedCube = [];
+	var taggedItem = 0;
+	// Supporting Variables
+	var mapSize;
+	var mapMin;
+	var mapMax;
+	var movecube = 0;
 	
 	
 	
@@ -68,13 +82,23 @@
 	////////////////////////////
 	
 	function gameSetup(){
-		mapSize = 60; // Set your map Size;
+		mapSize = 90; // Set your map Size;
 		cubeColors = ["red", "blue", "green", "orange", "purple", "maroon", "yellow", "indigo", "Gold"];
-		numOfCubes = 3; // Set the number of Cubes here;
+		numOfCubes = 8; // Set the number of Cubes here;
+		objectCount = numOfCubes;
 		gameMode = 0; // 0 = off , 1 = on;
+		moveCube = 3; // move cube by how many spaces;
+		
+		
 	}
 	
 	function setupFunctions(){
+	
+		// Create the array to hold each object's delta;
+		for (var i  = 0; i < objectCount; i++){
+			objectMovementArray[i] = [];
+		}
+	
 		document.addEventListener('keyup', function (event) {
            if (event.keyCode === 27) { // listen for Esc Key
                event.preventDefault();
@@ -90,28 +114,37 @@
 		document.addEventListener("keydown", function (event) {
 			if(event.keyCode === 87) { // listen for "W" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.z -= 1;
+				if((boxesArray[currentObject].position.z - moveCube) >= mapMin && willItBump()){
+				boxesArray[currentObject].position.z -= moveCube;
+				}
 				// updates the boundingBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
 			}
 			if(event.keyCode === 65) { // listen for "A" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.x -= 1;
+				if((boxesArray[currentObject].position.x - moveCube) >= mapMin && willItBump()){
+				boxesArray[currentObject].position.x -= moveCube;
+				}
 				// updates the boundBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
 			}
 			if(event.keyCode === 83) { // listen for "S" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.z += 1;
+				if((boxesArray[currentObject].position.z + moveCube) <= mapMax && willItBump()){
+				boxesArray[currentObject].position.z += moveCube;
+				}
 				// updates the boundBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
 			}
 			if(event.keyCode === 68) { // listen for "D" key;
 				event.preventDefault();
-				boxesArray[currentObject].position.x += 1;
+				if((boxesArray[currentObject].position.x + moveCube) <= mapMax && willItBump()){
+				boxesArray[currentObject].position.x += moveCube;
+				}
+				
 				// updates the boundBox;
 				boundBoxUpdate(boundBoxHelperArray[currentObject]);
 				
@@ -166,6 +199,9 @@
 		for(i = 0; i < numOfCubes; i++){
 			createBox(3);
 		}
+		
+		// set mapSize mins and maxes;
+		setMapSettings();
 
 		// add it to the scene;
 		addBoxes();
@@ -258,6 +294,9 @@
 	function createBox(size){
 		// update what we're using for boxSize (class variable);
 		boxSize = size;
+		
+		
+		
 		// pick a random color based on the size of cube color array;
 		var randColorNumber = Math.floor((Math.random() * cubeColors.length));
 		var geometry = new THREE.BoxGeometry( size, size, size );
@@ -302,9 +341,9 @@
 	//////////////////////////////////
 	
 	function setRandomPosition(cube, size){
-		var x = Math.floor((Math.random() * mapSize)) + (size/2);
+		var x = Math.floor((Math.random() * mapSize));
 		var y = Math.floor((Math.random() * mapSize));
-		var z = Math.floor((Math.random() * mapSize)) + (size/2);
+		var z = Math.floor((Math.random() * mapSize));
 		
 		// set the cube's position
 		cube.position.set(x,(size/2),z);
@@ -313,18 +352,19 @@
 		if(cube.position.x > mapSize - (size/2) || cube.position.z > mapSize - (size/2)){
 			// if cube's x position is greater than mapSize -- then subtract it by half a cube;
 			if(cube.position.x > mapSize){
-				cube.position.x = (x - size);
+				cube.position.x = cube.position.x - 2;
 			}
 			// if cube's z position is greater than mapSize -- then subtract it by half a cube;
 			else{
-				cube.position.z = (z - size );
+				cube.position.z = cube.position.z - 2;
 			}
 		}
+		
 		if(cube.position.x < (size/2) || cube.position.z < (size/2)){
-			if(cube.position.x < (1/2)(size)){
-				cube.position.x += 1;
+			if(cube.position.x < (.5*size)){
+				cube.position.x += 3;
 			}else{
-				cube.position.z += 1;
+				cube.position.z += 3;
 			}
 		}
 		
@@ -367,6 +407,8 @@
 			// if the currentObject is intersecting something and it is NOT the currentObject then we note it;
 			if(boundBoxHelperArray[currentObject].box.intersectsBox(boundBoxHelperArray[i].box) && i != currentObject){
 				objectNoted = i;
+				boxCollidedID = i;
+				score -= 5;
 			}
 			
 			
@@ -385,7 +427,9 @@
 		// if gameMode is on, we want to keep track of collisions -- we'll also add some variables so that we can keep track of things like score, and score depreciation etc;
 		if(gameMode == 1){
 			info.innerHTML = "Level: " + level + "<br>Score: " + score;
-			gameEngine();
+			movePlayers();			
+			updateAllBoundBoxes();
+			//gameEngine();
 		}
 		
 		if(debuggingMode == 1){
@@ -393,6 +437,8 @@
 			
 			
 		  info.innerHTML = "box x: " + boxesArray[currentObject].position.x + "<br>box z: " + boxesArray[currentObject].position.z;
+		  info.innerHTML += "<br>mapMax: " + mapMax + "<br> mapMin: " + mapMin + "<br>Score: " + score + "<br> Speed: " + speed;
+		  
 		}
 	}
 	
@@ -403,6 +449,13 @@
 	/////////////////////
 	
 	// setup functions;
+	
+	function setMapSettings(){
+		/// let computer set these;
+		mapMin = 0 + (boxSize / 2);
+		mapMax = mapSize - (boxSize / 2);
+		
+	}
 	
 	function visibilityBoundingBoxes () {
          seeBoundingBoxes = !seeBoundingBoxes;
@@ -485,9 +538,13 @@
 	  ////////////////////////////////////
 	  
 	  // speed of the players;
-	  var speed = -0.05;
-	  var information = [];
+	  var speed = 0.05;
+	  var deltaX = speed;
+	  var deltaZ = speed;
 	  var debuggingMode = 0;
+	  // define the minimums and maximum positions the cubes can be within;
+	  var mapMin = 0 + (boxSize / 2);
+	  var mapMax = mapSize - (boxSize / 2);
 	  
 	  
 	  
@@ -495,6 +552,14 @@
 	  
 	  // starts game mode from the button on the top left;
 	  function startGameMode(){
+	  for(i = 0; i < objectCount; i++){
+		objectMovementArray[i][0] = deltaX;
+		objectMovementArray[i][1] = deltaZ;
+	  }
+	  for(i = 0; i < objectCount; i++){
+		taggedCube[i] = -1;
+	  }
+	  
 		  gameMode = !gameMode;
 	  }
 	  
@@ -505,42 +570,153 @@
 	  
 	  
 	  
-	  // moves the invidual boxes;
+	  // MOVES BOXES AND COLLISION DETECTION FOR WALLS AND OTHER BOXES;
 	  function movePlayers(){
+	  
+	  var taggedBoxIJ = -1;
+	  var collidedWith = [];
 		  for(i = 0; i < boxesArray.length; i++){
+				// set box1 to be the current box we're iterating  through
 			  var box1 = boxesArray[i];
-			  var deltaX = speed; // speed of x;
-			  var deltaZ = speed; // speed of z;
+			  info.innerHTML += "<br>deltaX = " + mapMax;
+			  // if the box is moving to outside the map, change it's direction. 																Don't change it's direction again until it hits the other side.
+			  // that is if the box += dirVector(x or z) exceeds the mapMax or is less less than mapMin, change its direction.					that is have a boolean flag so that when it hits the other side -- let it move.
+			  // that is if the dirVector(x or z) is positive, switch it to negative;
 			  
-			  var directionOfTravel;
+			  // If we are NOT in game mode OR we ARE in game mode -- we will detect wall collisions;
+			  if(!gameMode || gameMode){
 			  
-			  var breakBound = 1; // if box travels to the other side -- switch its direction of travel;
-			  
-			  // find out if the cube has exceeded either end;
-			  var resultPos = checkPositiveBounds(box1);
-			  var resultNeg = checkNegativeBounds(box1);
-			  info.innerHTML = "resultPos " + resultPos + "<br> resultNeg " + resultNeg;
-			  
-			  // if the cube moves past the map in either x or z direction -- turn it around.
-			  if(resultPos != undefined || resultNeg != undefined){
-				  // find out which way it went past;
-				  if(resultPos == "x"){
-					  // change that direction around;
-					  deltaX * breakBound;
-				  }
-				  if(resultPos == "z"){
-					  // change that direction around;
-					  deltaZ * breakBound;
+			  // MAP COLLISIONS
+				  if(box1.position.x >= mapMax || box1.position.x <= mapMin && i != undefined && j != undefined){
+				  // change this object's movement to a specific value
+					objectMovementArray[i][0] = -objectMovementArray[i][0];
+					// the cube is reset;
+					taggedCube[i] = -1;
+					console.log("this box is untagged: " + i);
+					//deltaX = -deltaX;
+					if(i != currentObject){
+					score++;
+					}
 				  }
 				  
-			  }
+				  
+				  if(box1.position.z >= mapMax || box1.position.z <= mapMin && i != undefined && j != undefined){
+				  // change object's movement to it's inverse
+				  objectMovementArray[i][1] = -objectMovementArray[i][1];
+				  // the cube is reset;
+					taggedCube[i] = -1;
+					console.log("this box is untagged: " + i);
+					//deltaZ = -deltaZ;
+					if(i != currentObject){
+					score++;
+					}
+				  }
+				  
+				  
+				  
+				  
+				  
+				  // CUBE COLLISIONS
+				  // if the bounding box of i intersects bounding box of j, then we need to know;
+					for(j = 0; j < boundBoxHelperArray.length; j++){
+					
+						if(boundBoxHelperArray[i].box.intersectsBox(boundBoxHelperArray[j].box) && i != j && i != undefined && j != undefined){
+						
+						if( i != currentObject && j != currentObject){
+							if(taggedItem == j || taggedItem == i){
+								if(taggedItem != j){
+									removeObjectFromGame(j);
+								}
+								else{
+									removeObjectFromGame(i);
+									}
+							}
+						}
+							
+							
+							// if the cube i or cube j is the current object, we'll tag the other one;
+							var alreadyChecked = 0;
+							if(i == currentObject || j == currentObject && alreadyChecked == 0){
+								if(i == currentObject){
+									taggedCube[j] = 1;
+									alreadyChecked = 1;
+									console.log("this box is tagged: " + j)
+									taggedItem = j;
+								}
+								else{
+									taggedCube[i] = 1;
+									alreadyChecked = 1;
+									console.log("this box is tagged: " + i)
+									taggedItem = i;
+								}
+							}
+							
+							
+							
+							if(boxesArray[i] != undefined && boxesArray[j] != undefined){
+								// difference in x is box[i].x - box[j].position.x;
+							var xDiff = Math.abs((boxesArray[i].position.x - boxesArray[j].position.x));
+							
+							// difference in z is box[i].z - box[j].position.z;
+							var zDiff = Math.abs((boxesArray[i].position.z - boxesArray[j].position.z));
+							}
+						
+							
+							console.log("collisions between: " + i + " and " + j + "\n xDiff: " + xDiff + "\n yDiff: " + zDiff + "\n Current player: " + currentObject + "\n t@gged: " + taggedItem);
+							if(i == currentObject && i != undefined && j != undefined){
+								collidedWith.push(j);
+							}else{
+							collidedWith.push(i);
+							}
+							
+							if(xDiff <= zDiff && i != undefined && j != undefined){
+								objectMovementArray[i][0] = -objectMovementArray[i][0];
+							}
+							if(xDiff >= zDiff && i != undefined && j != undefined){
+								objectMovementArray[i][1] = -objectMovementArray[i][1];
+							}
+							
+							
+							
+						//	we place this below because it's simply saying that if (since we are in an if statement) 
+						// there is an intersection between these boxes, we need to switch their direction;
+							objectMovementArray[i][0] = -objectMovementArray[i][0];
+							objectMovementArray[i][1] = -objectMovementArray[i][1];
+							
+							
+						}
+					}
+					
+					
+				}
+				
+				
+				
+				
 			  
-			  box1.position.z += deltaZ;
-			  
+				if(i != currentObject && playerMoveValid == 1){
+				  box1.position.z += objectMovementArray[i][1];
+				  box1.position.x += objectMovementArray[i][0];
+				}
+				
+				// the currentPlayerObject;
+				currentObjectLiteral = boxesArray[currentObject];
+				
+				if(currentObjectLiteral.position.x < mapMax
+				&& currentObjectLiteral.position.z < mapMax
+				&& currentObjectLiteral.position.x > mapMin
+				&& currentObjectLiteral.position.z > mapMin
+				){
+					playerMoveValid = 1;
+				}else{
+					playerMoveValid = 1;
+				}
 			  
 			  
 		  }
 		  updateAllBoundBoxes();
+		  
+		  
 	  }
 	  
 	  function checkPositiveBounds(cube){
@@ -594,10 +770,51 @@
 		  debuggingMode = !debuggingMode;
 	  }
 	  
+	  function levelLess(){
+		speed -= 0.05;
+		deltaX = speed;
+		deltaZ = speed;
+		
+		for(i = 0; i < objectCount; i++){
+			objectMovementArray[i][0] = deltaX;
+			objectMovementArray[i][1] = deltaZ;
+		}
+		level--;
+	  }
+	  function levelMore(){
+		speed += 0.05;
+		
+		deltaX = speed;
+		deltaZ = speed;
+		
+		for(i = 0; i < objectCount; i++){
+			objectMovementArray[i][0] = deltaX;
+			objectMovementArray[i][1] = deltaZ;
+		}
+		
+		level++;
+	  }
 	  
+	  function removeObjectFromGame(arrayIndexNum){
+		// we're going to remove the object itself
+		scene.remove(boxesArray[arrayIndexNum]);
 	  
+		// we're going to remove it from the arrays boundBoxHelperArray and boxesArray and objectMovementArray;
+		boundBoxHelperArray.splice(arrayIndexNum, 1);
+		boxesArray.splice(arrayIndexNum, 1);
+		objectMovementArray.splice(arrayIndexNum, 1);
+		
+	  }
 	  
-	  
+	  function willItBump(){
+		  
+		  return true;
+		  
+		  
+		
+		}
+		
+		
 	  
 	  
 

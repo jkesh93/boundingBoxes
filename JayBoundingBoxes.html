@@ -59,10 +59,14 @@
 	var alive;
 	var playerMoveValid;
 	var boxCollidedID;
+	
 	// 2D array for each object's deltaX and deltaY;
 	var objectMovementArray = [];
 	var objectCount = 0;
 	
+	// array for holding "who's tagged"
+	var taggedCube = [];
+	var taggedItem = 0;
 	// Supporting Variables
 	var mapSize;
 	var mapMin;
@@ -110,7 +114,7 @@
 		document.addEventListener("keydown", function (event) {
 			if(event.keyCode === 87) { // listen for "W" key;
 				event.preventDefault();
-				if((boxesArray[currentObject].position.z - moveCube) >= mapMin){
+				if((boxesArray[currentObject].position.z - moveCube) >= mapMin && willItBump()){
 				boxesArray[currentObject].position.z -= moveCube;
 				}
 				// updates the boundingBox;
@@ -119,7 +123,7 @@
 			}
 			if(event.keyCode === 65) { // listen for "A" key;
 				event.preventDefault();
-				if((boxesArray[currentObject].position.x - moveCube) >= mapMin){
+				if((boxesArray[currentObject].position.x - moveCube) >= mapMin && willItBump()){
 				boxesArray[currentObject].position.x -= moveCube;
 				}
 				// updates the boundBox;
@@ -128,7 +132,7 @@
 			}
 			if(event.keyCode === 83) { // listen for "S" key;
 				event.preventDefault();
-				if((boxesArray[currentObject].position.z + moveCube) <= mapMax){
+				if((boxesArray[currentObject].position.z + moveCube) <= mapMax && willItBump()){
 				boxesArray[currentObject].position.z += moveCube;
 				}
 				// updates the boundBox;
@@ -137,7 +141,7 @@
 			}
 			if(event.keyCode === 68) { // listen for "D" key;
 				event.preventDefault();
-				if((boxesArray[currentObject].position.x + moveCube) <= mapMax){
+				if((boxesArray[currentObject].position.x + moveCube) <= mapMax && willItBump()){
 				boxesArray[currentObject].position.x += moveCube;
 				}
 				
@@ -552,6 +556,10 @@
 		objectMovementArray[i][0] = deltaX;
 		objectMovementArray[i][1] = deltaZ;
 	  }
+	  for(i = 0; i < objectCount; i++){
+		taggedCube[i] = -1;
+	  }
+	  
 		  gameMode = !gameMode;
 	  }
 	  
@@ -562,8 +570,11 @@
 	  
 	  
 	  
-	  // moves the invidual boxes AND COLLISION DETECTION FOR WALLS AND OTHER BOXES;
+	  // MOVES BOXES AND COLLISION DETECTION FOR WALLS AND OTHER BOXES;
 	  function movePlayers(){
+	  
+	  var taggedBoxIJ = -1;
+	  var collidedWith = [];
 		  for(i = 0; i < boxesArray.length; i++){
 				// set box1 to be the current box we're iterating  through
 			  var box1 = boxesArray[i];
@@ -574,9 +585,14 @@
 			  
 			  // If we are NOT in game mode OR we ARE in game mode -- we will detect wall collisions;
 			  if(!gameMode || gameMode){
-				  if(box1.position.x >= mapMax || box1.position.x <= mapMin){
+			  
+			  // MAP COLLISIONS
+				  if(box1.position.x >= mapMax || box1.position.x <= mapMin && i != undefined && j != undefined){
 				  // change this object's movement to a specific value
 					objectMovementArray[i][0] = -objectMovementArray[i][0];
+					// the cube is reset;
+					taggedCube[i] = -1;
+					console.log("this box is untagged: " + i);
 					//deltaX = -deltaX;
 					if(i != currentObject){
 					score++;
@@ -584,41 +600,96 @@
 				  }
 				  
 				  
-				  if(box1.position.z >= mapMax || box1.position.z <= mapMin){
+				  if(box1.position.z >= mapMax || box1.position.z <= mapMin && i != undefined && j != undefined){
 				  // change object's movement to it's inverse
 				  objectMovementArray[i][1] = -objectMovementArray[i][1];
+				  // the cube is reset;
+					taggedCube[i] = -1;
+					console.log("this box is untagged: " + i);
 					//deltaZ = -deltaZ;
 					if(i != currentObject){
 					score++;
 					}
 				  }
 				  
+				  
+				  
+				  
+				  
+				  // CUBE COLLISIONS
 				  // if the bounding box of i intersects bounding box of j, then we need to know;
 					for(j = 0; j < boundBoxHelperArray.length; j++){
 					
-						if(boundBoxHelperArray[i].box.intersectsBox(boundBoxHelperArray[j].box) && i != j){
+						if(boundBoxHelperArray[i].box.intersectsBox(boundBoxHelperArray[j].box) && i != j && i != undefined && j != undefined){
+						
+						if( i != currentObject && j != currentObject){
+							if(taggedItem == j || taggedItem == i){
+								if(taggedItem != j){
+									removeObjectFromGame(j);
+								}
+								else{
+									removeObjectFromGame(i);
+									}
+							}
+						}
 							
-							// difference in x is box[i].x - box[j].position.x;
+							
+							// if the cube i or cube j is the current object, we'll tag the other one;
+							var alreadyChecked = 0;
+							if(i == currentObject || j == currentObject && alreadyChecked == 0){
+								if(i == currentObject){
+									taggedCube[j] = 1;
+									alreadyChecked = 1;
+									console.log("this box is tagged: " + j)
+									taggedItem = j;
+								}
+								else{
+									taggedCube[i] = 1;
+									alreadyChecked = 1;
+									console.log("this box is tagged: " + i)
+									taggedItem = i;
+								}
+							}
+							
+							
+							
+							if(boxesArray[i] != undefined && boxesArray[j] != undefined){
+								// difference in x is box[i].x - box[j].position.x;
 							var xDiff = Math.abs((boxesArray[i].position.x - boxesArray[j].position.x));
 							
 							// difference in z is box[i].z - box[j].position.z;
 							var zDiff = Math.abs((boxesArray[i].position.z - boxesArray[j].position.z));
+							}
+						
 							
-							console.log("collisions between: " + i + " and " + j + "\n xDiff: " + xDiff + "\n yDiff: " + zDiff + "\n Current player: " + currentObject);
-							if(xDiff < zDiff){
+							console.log("collisions between: " + i + " and " + j + "\n xDiff: " + xDiff + "\n yDiff: " + zDiff + "\n Current player: " + currentObject + "\n t@gged: " + taggedItem);
+							if(i == currentObject && i != undefined && j != undefined){
+								collidedWith.push(j);
+							}else{
+							collidedWith.push(i);
+							}
+							
+							if(xDiff <= zDiff && i != undefined && j != undefined){
 								objectMovementArray[i][0] = -objectMovementArray[i][0];
 							}
-							if(xDiff > zDiff){
+							if(xDiff >= zDiff && i != undefined && j != undefined){
 								objectMovementArray[i][1] = -objectMovementArray[i][1];
 							}
 							
 							
-							if(boxesArray[i].position.x)
+							
+						//	we place this below because it's simply saying that if (since we are in an if statement) 
+						// there is an intersection between these boxes, we need to switch their direction;
 							objectMovementArray[i][0] = -objectMovementArray[i][0];
 							objectMovementArray[i][1] = -objectMovementArray[i][1];
+							
+							
 						}
 					}
+					
+					
 				}
+				
 				
 				
 				
@@ -644,6 +715,8 @@
 			  
 		  }
 		  updateAllBoundBoxes();
+		  
+		  
 	  }
 	  
 	  function checkPositiveBounds(cube){
@@ -721,6 +794,29 @@
 		
 		level++;
 	  }
+	  
+	  function removeObjectFromGame(arrayIndexNum){
+		// we're going to remove the object itself
+		scene.remove(boxesArray[arrayIndexNum]);
+	  
+		// we're going to remove it from the arrays boundBoxHelperArray and boxesArray and objectMovementArray;
+		boundBoxHelperArray.splice(arrayIndexNum, 1);
+		boxesArray.splice(arrayIndexNum, 1);
+		objectMovementArray.splice(arrayIndexNum, 1);
+		
+	  }
+	  
+	  function willItBump(){
+		  
+		  return true;
+		  
+		  
+		
+		}
+		
+		
+	  
+	  
 
     // calls the init function when the window is done loading.
     window.onload = init;
