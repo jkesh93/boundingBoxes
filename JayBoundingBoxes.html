@@ -59,6 +59,8 @@
 	var alive;
 	var playerMoveValid;
 	var boxCollidedID;
+	var boxKilled = 0; // when boxKilled = objectCount-1 then we know the game is over;
+	var endGame = 0;
 	
 	// 2D array for each object's deltaX and deltaY;
 	var objectMovementArray = [];
@@ -73,18 +75,14 @@
 	var mapMax;
 	var movecube = 0;
 	
-	
-	
-	
-	
 	////////////////////////////
 	//  ESSENTIAL FUNCTIONS ////
 	////////////////////////////
 	
 	function gameSetup(){
 		mapSize = 90; // Set your map Size;
-		cubeColors = ["red", "blue", "green", "orange", "purple", "maroon", "yellow", "indigo", "Gold"];
-		numOfCubes = 8; // Set the number of Cubes here;
+		cubeColors = ["red", "blue", "green", "orange", "purple", "maroon", "yellow", "indigo", "gold"];
+		numOfCubes = 4; // Set the number of Cubes here;
 		objectCount = numOfCubes;
 		gameMode = 0; // 0 = off , 1 = on;
 		moveCube = 3; // move cube by how many spaces;
@@ -178,8 +176,6 @@
 		
     } // end init;
 	
-	
-	
 	///////////////////
 	/// Create World //
 	///////////////////
@@ -207,8 +203,6 @@
 		addBoxes();
 		
 	}
-	
-	
 	
 	/////////////////////////////////
 	/// Camera and Renderer Setup  //
@@ -266,12 +260,6 @@
 		scene.add( spotLight );
 	}
 	
-	
-	
-	
-	
-	
-	
 	/////////////////////////////
 	// Create Object Functions //
 	/////////////////////////////
@@ -294,8 +282,6 @@
 	function createBox(size){
 		// update what we're using for boxSize (class variable);
 		boxSize = size;
-		
-		
 		
 		// pick a random color based on the size of cube color array;
 		var randColorNumber = Math.floor((Math.random() * cubeColors.length));
@@ -408,7 +394,7 @@
 			if(boundBoxHelperArray[currentObject].box.intersectsBox(boundBoxHelperArray[i].box) && i != currentObject){
 				objectNoted = i;
 				boxCollidedID = i;
-				score -= 5;
+				//score -= 5;
 			}
 			
 			
@@ -441,9 +427,7 @@
 		  
 		}
 	}
-	
-	
-	
+
 	/////////////////////
 	/// Misc Functions //
 	/////////////////////
@@ -527,12 +511,12 @@
         controls.update();
 		checkForBoxCollisions();
         requestAnimationFrame(render);
+		if(endGame == 1){
+			info.innerHTML = "YOU WON ! Hit refresh to play again or increase the number of cubes";
+		}
     }
 
-	  
 
-	  
-	  
 	  ////////////////////////////////////
 	  ///   GAME MODE FUNCTIONS BELOW ////
 	  ////////////////////////////////////
@@ -545,10 +529,6 @@
 	  // define the minimums and maximum positions the cubes can be within;
 	  var mapMin = 0 + (boxSize / 2);
 	  var mapMax = mapSize - (boxSize / 2);
-	  
-	  
-	  
-	  
 	  
 	  // starts game mode from the button on the top left;
 	  function startGameMode(){
@@ -568,8 +548,7 @@
 		  updateAllBoundBoxes();
 	  }
 	  
-	  
-	  
+
 	  // MOVES BOXES AND COLLISION DETECTION FOR WALLS AND OTHER BOXES;
 	  function movePlayers(){
 	  
@@ -584,7 +563,7 @@
 			  // that is if the dirVector(x or z) is positive, switch it to negative;
 			  
 			  // If we are NOT in game mode OR we ARE in game mode -- we will detect wall collisions;
-			  if(!gameMode || gameMode){
+			  if(gameMode){
 			  
 			  // MAP COLLISIONS
 				  if(box1.position.x >= mapMax || box1.position.x <= mapMin && i != undefined && j != undefined){
@@ -595,7 +574,7 @@
 					console.log("this box is untagged: " + i);
 					//deltaX = -deltaX;
 					if(i != currentObject){
-					score++;
+					//score++;
 					}
 				  }
 				  
@@ -608,7 +587,7 @@
 					console.log("this box is untagged: " + i);
 					//deltaZ = -deltaZ;
 					if(i != currentObject){
-					score++;
+					//score++;
 					}
 				  }
 				  
@@ -626,9 +605,23 @@
 							if(taggedItem == j || taggedItem == i){
 								if(taggedItem != j){
 									removeObjectFromGame(j);
+									console.log("bk: " + boxKilled + "\n Objectcout: " + objectCount);
+									score += 10;
+									boxKilled++;
+									if(boxKilled == (objectCount-1)){
+										console.log("bk: " + boxKilled + "\n Objectcout: " + objectCount);
+										gameComplete();
+									}
 								}
 								else{
 									removeObjectFromGame(i);
+									console.log("bk: " + boxKilled + "\n Objectcout: " + objectCount);
+									score += 10;
+									boxKilled++;
+									if(boxKilled == (objectCount-2)){
+										console.log("bk: " + boxKilled + "\n Objectcout: " + objectCount);
+										gameComplete();
+									}
 									}
 							}
 						}
@@ -806,6 +799,12 @@
 		
 	  }
 	  
+	  function gameComplete(){
+		gameMode = !gameMode;
+		info.innerHTML += "YOU WON ! Refresh to play again! Or increase the number of cubes";
+		endGame = 1;
+	  }
+	  
 	  function willItBump(){
 		  
 		  return true;
@@ -814,13 +813,8 @@
 		
 		}
 		
-		
-	  
-	  
-
     // calls the init function when the window is done loading.
     window.onload = init;
-	
 
 </script>
 </body>
